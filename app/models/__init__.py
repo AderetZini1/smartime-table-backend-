@@ -8,3 +8,5 @@ from .teacher_assignment import TeacherAssignment
 from .curriculum_requirement import CurriculumRequirement
 from .schedule_run import ScheduleRun
 from .schedule import Schedule
+from .submission_window import SubmissionWindow
+from .teacher_request import TeacherRequest

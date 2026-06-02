@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, teachers, rooms, timeslots, subjects, student_groups, teacher_constraints, teacher_assignments, curriculum_requirements, schedule_runs, schedule
+from app.routers import auth, teachers, rooms, timeslots, subjects, student_groups, teacher_constraints, teacher_assignments, curriculum_requirements, schedule_runs, schedule, submission_windows, teacher_requests
 
 app = FastAPI(
     title="Smartime API",
@@ -8,11 +8,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# מאפשר לFrontend לדבר עם השרת
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # בפרודקשן נגביל לכתובת הFrontend
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -28,6 +27,8 @@ app.include_router(teacher_assignments.router)
 app.include_router(curriculum_requirements.router)
 app.include_router(schedule_runs.router)
 app.include_router(schedule.router)
+app.include_router(submission_windows.router)
+app.include_router(teacher_requests.router)
 
 @app.get("/")
 async def root():
