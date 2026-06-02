@@ -32,7 +32,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = create_access_token(data={"sub": teacher.id})
+    token = create_access_token(data={"sub": str(teacher.id)})
     return {"access_token": token, "token_type": "bearer"}
 
 
