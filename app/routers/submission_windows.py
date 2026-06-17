@@ -57,7 +57,10 @@ async def create_window(
     db: AsyncSession = Depends(get_db),
     _: Teacher = Depends(get_current_admin)
 ):
-    window = SubmissionWindow(**data.model_dump())
+    dump = data.model_dump()
+    dump['start_date'] = dump['start_date'].replace(tzinfo=None)
+    dump['end_date'] = dump['end_date'].replace(tzinfo=None)
+    window = SubmissionWindow(**dump)
     db.add(window)
     await db.commit()
     await db.refresh(window)
