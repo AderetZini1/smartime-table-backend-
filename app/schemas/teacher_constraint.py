@@ -1,23 +1,24 @@
 from pydantic import BaseModel
 from typing import Optional
 
-# בסיס - שדות משותפים
 class TeacherConstraintBase(BaseModel):
     teacher_id: int
     timeslot_id: int
-    weight: int  # 100=אילוץ קשיח, 1-10=העדפה רכה
+    weight: int
 
-# ליצירת אילוץ חדש
 class TeacherConstraintCreate(TeacherConstraintBase):
-    pass
+    constraint_type: Optional[str] = 'unavailable'
+    reason: Optional[str] = None
 
-# לעדכון אילוץ
 class TeacherConstraintUpdate(BaseModel):
     weight: Optional[int] = None
+    constraint_type: Optional[str] = None
+    reason: Optional[str] = None
 
-# מה שחוזר מהשרת
 class TeacherConstraintResponse(TeacherConstraintBase):
     id: int
+    constraint_type: Optional[str] = 'unavailable'
+    reason: Optional[str] = None
 
     class Config:
         from_attributes = True

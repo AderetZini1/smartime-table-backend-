@@ -56,6 +56,8 @@ async def create_constraint(
         teacher_id=data.teacher_id,
         timeslot_id=data.timeslot_id,
         weight=data.weight,
+        constraint_type=getattr(data, 'constraint_type', 'unavailable'),
+        reason=getattr(data, 'reason', None),
     )
     db.add(constraint)
     await db.commit()
