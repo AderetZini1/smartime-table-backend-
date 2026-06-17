@@ -10,3 +10,4 @@ from .schedule_run import ScheduleRun
 from .schedule import Schedule
 from .submission_window import SubmissionWindow
 from .teacher_request import TeacherRequest
+from .teacher_preference import TeacherPreference
