@@ -8,6 +8,7 @@ from app.models.submission_window import SubmissionWindow
 from app.models.teacher import Teacher
 from app.auth import get_current_teacher, get_current_admin
 from pydantic import BaseModel
+from zoneinfo import ZoneInfo
 
 class SubmissionWindowCreate(BaseModel):
     title: str
@@ -41,7 +42,7 @@ async def get_active_window(
     _: Teacher = Depends(get_current_teacher)
 ):
     """בודק אם יש חלון הגשה פעיל כרגע"""
-    now = datetime.utcnow()
+    now = datetime.now(ZoneInfo("Asia/Jerusalem")).replace(tzinfo=None)
     result = await db.execute(
         select(SubmissionWindow).where(
             SubmissionWindow.is_active == True,
