@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, teachers, rooms, timeslots, subjects, student_groups, teacher_constraints, teacher_assignments, curriculum_requirements, schedule_runs, schedule, submission_windows, teacher_requests, teacher_preferences, teacher_subjects, teacher_grade_levels, teacher_homeroom_prefs
+from app.routers import auth, teachers, rooms, timeslots, subjects, student_groups, teacher_constraints, teacher_assignments, curriculum_requirements, schedule_runs, schedule, submission_windows, teacher_requests, teacher_preferences, teacher_subjects, teacher_grade_levels, teacher_homeroom_prefs, google_auth
 
 app = FastAPI(
     title="Smartime API",
@@ -33,6 +33,7 @@ app.include_router(teacher_preferences.router)
 app.include_router(teacher_subjects.router)
 app.include_router(teacher_grade_levels.router)
 app.include_router(teacher_homeroom_prefs.router)
+app.include_router(google_auth.router)
 
 @app.get("/")
 async def root():
