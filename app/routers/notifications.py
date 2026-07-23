@@ -1,31 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from typing import List, Optional
-from datetime import datetime
 from app.database import get_db
 from app.models.teacher import Teacher
 from app.auth import get_current_teacher, get_current_admin
 from pydantic import BaseModel
-import resend
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import os
 
-resend.api_key = os.getenv("RESEND_API_KEY")
+GMAIL_USER = os.getenv("GMAIL_USER")
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
 class NotificationCreate(BaseModel):
     title: str
     body: str
-
-class NotificationResponse(BaseModel):
-    id: int
-    notification_id: int
-    title: str
-    body: str
-    is_read: bool
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -35,20 +25,17 @@ async def send_notification(
     db: AsyncSession = Depends(get_db),
     current_teacher: Teacher = Depends(get_current_admin)
 ):
-    # שמירה ב-DB
     result = await db.execute(
         text("INSERT INTO notifications (title, body, created_by) VALUES (:title, :body, :created_by) RETURNING id"),
         {"title": data.title, "body": data.body, "created_by": current_teacher.id}
     )
     notification_id = result.scalar()
 
-    # שליפת כל המורים
     teachers_result = await db.execute(
         text("SELECT id, email, first_name FROM teachers WHERE is_admin = false")
     )
     teachers = teachers_result.mappings().all()
 
-    # יצירת teacher_notifications לכל מורה
     for teacher in teachers:
         await db.execute(
             text("INSERT INTO teacher_notifications (notification_id, teacher_id) VALUES (:nid, :tid)"),
@@ -57,25 +44,29 @@ async def send_notification(
 
     await db.commit()
 
-    # שליחת מייל לכל מורה
-    for teacher in teachers:
+    # שליחת מייל דרך Gmail
+    if GMAIL_USER and GMAIL_APP_PASSWORD:
         try:
-            resend.Emails.send({
-                "from": "Smartime <onboarding@resend.dev>",
-                "to": teacher["email"],
-                "subject": f"הודעה חדשה: {data.title}",
-                "html": f"""
-                <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2 style="color: #4a3f35;">הודעה חדשה מהמנהל</h2>
-                    <h3 style="color: #8a9e78;">{data.title}</h3>
-                    <p style="color: #4a3f35;">{data.body}</p>
-                    <hr style="border-color: #e2dacc;">
-                    <p style="color: #c8baa6; font-size: 12px;">Smartime — מערכת שעות חכמה</p>
-                </div>
-                """
-            })
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+                for teacher in teachers:
+                    msg = MIMEMultipart('alternative')
+                    msg['Subject'] = f"הודעה חדשה: {data.title}"
+                    msg['From'] = GMAIL_USER
+                    msg['To'] = teacher["email"]
+                    html = f"""
+                    <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
+                        <h2 style="color: #4a3f35;">הודעה חדשה מהמנהל</h2>
+                        <h3 style="color: #8a9e78;">{data.title}</h3>
+                        <p style="color: #4a3f35;">{data.body}</p>
+                        <hr style="border-color: #e2dacc;">
+                        <p style="color: #c8baa6; font-size: 12px;">Smartime — מערכת שעות חכמה</p>
+                    </div>
+                    """
+                    msg.attach(MIMEText(html, 'html'))
+                    server.sendmail(GMAIL_USER, teacher["email"], msg.as_string())
         except Exception as e:
-            print(f"Failed to send email to {teacher['email']}: {e}")
+            print(f"Email error: {e}")
 
     return {"message": f"נשלחה התראה ל-{len(teachers)} מורים"}
 
