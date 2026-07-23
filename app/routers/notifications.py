@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from app.database import get_db
@@ -19,9 +19,37 @@ class NotificationCreate(BaseModel):
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
+def send_emails_background(teachers, title, body):
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+        print("Gmail credentials not set")
+        return
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            for teacher in teachers:
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = f"הודעה חדשה: {title}"
+                msg['From'] = GMAIL_USER
+                msg['To'] = teacher["email"]
+                html = f"""
+                <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2 style="color: #4a3f35;">הודעה חדשה מהמנהל</h2>
+                    <h3 style="color: #8a9e78;">{title}</h3>
+                    <p style="color: #4a3f35;">{body}</p>
+                    <hr style="border-color: #e2dacc;">
+                    <p style="color: #c8baa6; font-size: 12px;">Smartime — מערכת שעות חכמה</p>
+                </div>
+                """
+                msg.attach(MIMEText(html, 'html'))
+                server.sendmail(GMAIL_USER, teacher["email"], msg.as_string())
+        print(f"Emails sent to {len(teachers)} teachers")
+    except Exception as e:
+        print(f"Email error: {e}")
+
 @router.post("/")
 async def send_notification(
     data: NotificationCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_teacher: Teacher = Depends(get_current_admin)
 ):
@@ -44,30 +72,7 @@ async def send_notification(
 
     await db.commit()
 
-    # שליחת מייל דרך Gmail
-    if GMAIL_USER and GMAIL_APP_PASSWORD:
-        try:
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-                server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
-                for teacher in teachers:
-                    msg = MIMEMultipart('alternative')
-                    msg['Subject'] = f"הודעה חדשה: {data.title}"
-                    msg['From'] = GMAIL_USER
-                    msg['To'] = teacher["email"]
-                    html = f"""
-                    <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
-                        <h2 style="color: #4a3f35;">הודעה חדשה מהמנהל</h2>
-                        <h3 style="color: #8a9e78;">{data.title}</h3>
-                        <p style="color: #4a3f35;">{data.body}</p>
-                        <hr style="border-color: #e2dacc;">
-                        <p style="color: #c8baa6; font-size: 12px;">Smartime — מערכת שעות חכמה</p>
-                    </div>
-                    """
-                    msg.attach(MIMEText(html, 'html'))
-                    server.sendmail(GMAIL_USER, teacher["email"], msg.as_string())
-        except Exception as e:
-            print(f"Email error: {e}")
-
+    background_tasks.add_task(send_emails_background, list(teachers), data.title, data.body)
     return {"message": f"נשלחה התראה ל-{len(teachers)} מורים"}
 
 @router.get("/me")
