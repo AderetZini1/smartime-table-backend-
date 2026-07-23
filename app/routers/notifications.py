@@ -74,7 +74,8 @@ async def send_notification(
 
     await db.commit()
 
-    background_tasks.add_task(send_emails_background, list(teachers), data.title, data.body)
+    teachers_list = [dict(t) for t in teachers]
+    background_tasks.add_task(send_emails_background, teachers_list, data.title, data.body)
     return {"message": f"נשלחה התראה ל-{len(teachers)} מורים"}
 
 @router.get("/admin")
