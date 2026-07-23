@@ -12,9 +12,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-GMAIL_USER = os.getenv("GMAIL_USER")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-
 class NotificationCreate(BaseModel):
     title: str
     body: str
@@ -22,16 +19,19 @@ class NotificationCreate(BaseModel):
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 def send_emails_background(teachers, title, body):
-    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+    gmail_user = os.getenv("GMAIL_USER")
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD")
+    print(f"EMAIL TASK STARTED: user={gmail_user}, teachers={len(teachers)}")
+    if not gmail_user or not gmail_password:
         print("Gmail credentials not set")
         return
     try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            server.login(gmail_user, gmail_password)
             for teacher in teachers:
                 msg = MIMEMultipart('alternative')
                 msg['Subject'] = f"הודעה חדשה: {title}"
-                msg['From'] = GMAIL_USER
+                msg['From'] = gmail_user
                 msg['To'] = teacher["email"]
                 html = f"""
                 <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
@@ -43,8 +43,8 @@ def send_emails_background(teachers, title, body):
                 </div>
                 """
                 msg.attach(MIMEText(html, 'html'))
-                server.sendmail(GMAIL_USER, teacher["email"], msg.as_string())
-        print(f"Emails sent to {len(teachers)} teachers")
+                server.sendmail(gmail_user, teacher["email"], msg.as_string())
+        print(f"Emails sent successfully to {len(teachers)} teachers")
     except Exception as e:
         print(f"Email error: {e}")
 
@@ -77,6 +77,16 @@ async def send_notification(
     background_tasks.add_task(send_emails_background, list(teachers), data.title, data.body)
     return {"message": f"נשלחה התראה ל-{len(teachers)} מורים"}
 
+@router.get("/admin")
+async def get_all_notifications(
+    db: AsyncSession = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_admin)
+):
+    result = await db.execute(
+        text("SELECT * FROM notifications ORDER BY created_at DESC")
+    )
+    return [dict(r) for r in result.mappings().all()]
+
 @router.get("/me")
 async def get_my_notifications(
     db: AsyncSession = Depends(get_db),
@@ -106,13 +116,3 @@ async def mark_as_read(
     )
     await db.commit()
     return {"message": "נסומן כנקרא"}
-
-@router.get("/admin")
-async def get_all_notifications(
-    db: AsyncSession = Depends(get_db),
-    current_teacher: Teacher = Depends(get_current_admin)
-):
-    result = await db.execute(
-        text("SELECT * FROM notifications ORDER BY created_at DESC")
-    )
-    return [dict(r) for r in result.mappings().all()]
