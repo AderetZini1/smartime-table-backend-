@@ -77,6 +77,16 @@ async def delete_requirement(
     await db.delete(requirement)
     await db.commit()
 
+@router.get("/by-group/{group_id}", response_model=List[CurriculumRequirementResponse])
+async def get_by_group(
+    group_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: Teacher = Depends(get_current_admin),
+):
+    result = await db.execute(
+        select(CurriculumRequirement).where(CurriculumRequirement.student_group_id == group_id)
+    )
+    return result.scalars().all()
 
 async def _get_or_404(db: AsyncSession, requirement_id: int) -> CurriculumRequirement:
     result = await db.execute(
