@@ -104,3 +104,13 @@ async def mark_as_read(
     )
     await db.commit()
     return {"message": "נסומן כנקרא"}
+
+@router.get("/admin")
+async def get_all_notifications(
+    db: AsyncSession = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_admin)
+):
+    result = await db.execute(
+        text("SELECT * FROM notifications ORDER BY created_at DESC")
+    )
+    return [dict(r) for r in result.mappings().all()]
