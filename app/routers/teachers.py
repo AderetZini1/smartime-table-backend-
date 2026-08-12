@@ -70,6 +70,7 @@ async def update_teacher(
     update_data = data.model_dump(exclude_unset=True)
     if "password" in update_data:
         pwd = update_data.pop("password")
+        print(f"[DEBUG] password branch hit, pwd={pwd!r}")   # <-- add this
         if pwd:  # only reset if a non-empty password was sent
             teacher.password_hash = hash_password(pwd)
     for field, value in update_data.items():
