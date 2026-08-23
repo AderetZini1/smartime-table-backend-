@@ -6,7 +6,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models.teacher_preference import TeacherPreference
 from app.models.teacher import Teacher
-from app.auth import get_current_teacher
+from app.auth import get_current_teacher, get_current_admin
 from pydantic import BaseModel
 
 class TeacherPreferenceSchema(BaseModel):
@@ -41,6 +41,17 @@ async def get_my_preferences(
 ):
     result = await db.execute(
         select(TeacherPreference).where(TeacherPreference.teacher_id == current_teacher.id)
+    )
+    return result.scalar_one_or_none()
+
+@router.get("/for-teacher/{teacher_id}", response_model=Optional[TeacherPreferenceResponse])
+async def get_preferences_for_teacher(
+    teacher_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    result = await db.execute(
+        select(TeacherPreference).where(TeacherPreference.teacher_id == teacher_id)
     )
     return result.scalar_one_or_none()
 
