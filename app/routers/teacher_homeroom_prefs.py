@@ -4,7 +4,7 @@ from sqlalchemy import text
 from typing import Optional
 from app.database import get_db
 from app.models.teacher import Teacher
-from app.auth import get_current_teacher
+from app.auth import get_current_teacher, get_current_admin
 from pydantic import BaseModel
 
 class HomeroomPrefSchema(BaseModel):
@@ -32,6 +32,19 @@ async def get_my_homeroom_pref(
     result = await db.execute(
         text("SELECT * FROM teacher_homeroom_preferences WHERE teacher_id = :tid"),
         {"tid": current_teacher.id}
+    )
+    row = result.mappings().one_or_none()
+    return dict(row) if row else {}
+
+@router.get("/for-teacher/{teacher_id}")
+async def get_homeroom_pref_for_teacher(
+    teacher_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    result = await db.execute(
+        text("SELECT * FROM teacher_homeroom_preferences WHERE teacher_id = :tid"),
+        {"tid": teacher_id}
     )
     row = result.mappings().one_or_none()
     return dict(row) if row else {}
