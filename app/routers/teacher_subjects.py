@@ -4,7 +4,7 @@ from sqlalchemy import select, delete
 from typing import List
 from app.database import get_db
 from app.models.teacher import Teacher
-from app.auth import get_current_teacher
+from app.auth import get_current_teacher, get_current_admin
 from pydantic import BaseModel
 from sqlalchemy import Column, Integer, ForeignKey
 from app.database import Base
@@ -37,6 +37,19 @@ async def get_my_subjects(
     )
     rows = result.mappings().all()
     return [dict(r) for r in rows]
+
+@router.get("/for-teacher/{teacher_id}", response_model=List[TeacherSubjectResponse])
+async def get_subjects_for_teacher(
+    teacher_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    from sqlalchemy import text
+    result = await db.execute(
+        text("SELECT * FROM teacher_subjects WHERE teacher_id = :tid"),
+        {"tid": teacher_id}
+    )
+    return [dict(r) for r in result.mappings().all()]
 
 @router.post("/me/{subject_id}", response_model=TeacherSubjectResponse)
 async def add_my_subject(
