@@ -82,3 +82,37 @@ async def remove_my_subject(
     )
     await db.commit()
     return {"message": "Deleted"}
+
+@router.post("/for-teacher/{teacher_id}/{subject_id}", response_model=TeacherSubjectResponse)
+async def add_subject_for_teacher(
+    teacher_id: int,
+    subject_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    from sqlalchemy import text
+    try:
+        result = await db.execute(
+            text("INSERT INTO teacher_subjects (teacher_id, subject_id) VALUES (:tid, :sid) RETURNING *"),
+            {"tid": teacher_id, "sid": subject_id}
+        )
+        await db.commit()
+        return dict(result.mappings().one())
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Already exists")
+
+@router.delete("/for-teacher/{teacher_id}/{subject_id}")
+async def remove_subject_for_teacher(
+    teacher_id: int,
+    subject_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    from sqlalchemy import text
+    await db.execute(
+        text("DELETE FROM teacher_subjects WHERE teacher_id = :tid AND subject_id = :sid"),
+        {"tid": teacher_id, "sid": subject_id}
+    )
+    await db.commit()
+    return {"message": "Deleted"}
