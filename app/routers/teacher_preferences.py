@@ -76,3 +76,26 @@ async def save_my_preferences(
     await db.commit()
     await db.refresh(pref)
     return pref
+
+@router.post("/for-teacher/{teacher_id}", response_model=TeacherPreferenceResponse)
+async def save_preferences_for_teacher(
+    teacher_id: int,
+    data: TeacherPreferenceSchema,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    result = await db.execute(
+        select(TeacherPreference).where(TeacherPreference.teacher_id == teacher_id)
+    )
+    pref = result.scalar_one_or_none()
+
+    if pref:
+        for key, value in data.model_dump().items():
+            setattr(pref, key, value)
+    else:
+        pref = TeacherPreference(teacher_id=teacher_id, **data.model_dump())
+        db.add(pref)
+
+    await db.commit()
+    await db.refresh(pref)
+    return pref
