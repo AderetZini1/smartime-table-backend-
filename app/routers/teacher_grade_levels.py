@@ -65,3 +65,32 @@ async def remove_grade_level(
     )
     await db.commit()
     return {"message": "Deleted"}
+
+@router.post("/for-teacher/{teacher_id}/{grade_level}")
+async def add_grade_level_for_teacher(
+    teacher_id: int,
+    grade_level: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    await db.execute(
+        text("INSERT INTO teacher_grade_levels (teacher_id, grade_level) VALUES (:tid, :gl) ON CONFLICT DO NOTHING"),
+        {"tid": teacher_id, "gl": grade_level}
+    )
+    await db.commit()
+    return {"message": "Added"}
+
+
+@router.delete("/for-teacher/{teacher_id}/{grade_level}")
+async def remove_grade_level_for_teacher(
+    teacher_id: int,
+    grade_level: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    await db.execute(
+        text("DELETE FROM teacher_grade_levels WHERE teacher_id = :tid AND grade_level = :gl"),
+        {"tid": teacher_id, "gl": grade_level}
+    )
+    await db.commit()
+    return {"message": "Deleted"}
