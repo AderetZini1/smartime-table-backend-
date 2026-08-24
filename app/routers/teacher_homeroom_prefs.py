@@ -68,3 +68,26 @@ async def save_my_homeroom_pref(
     )
     await db.commit()
     return {"message": "Saved"}
+
+
+
+@router.post("/for-teacher/{teacher_id}")
+async def save_homeroom_pref_for_teacher(
+    teacher_id: int,
+    data: HomeroomPrefSchema,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Teacher = Depends(get_current_admin)
+):
+    await db.execute(
+        text("""
+            INSERT INTO teacher_homeroom_preferences (teacher_id, wants_homeroom, preferred_group_id, wants_continue_with_previous)
+            VALUES (:tid, :wh, :pgid, :wcp)
+            ON CONFLICT (teacher_id) DO UPDATE SET
+                wants_homeroom = :wh,
+                preferred_group_id = :pgid,
+                wants_continue_with_previous = :wcp
+        """),
+        {"tid": teacher_id, "wh": data.wants_homeroom, "pgid": data.preferred_group_id, "wcp": data.wants_continue_with_previous}
+    )
+    await db.commit()
+    return {"message": "Saved"}
