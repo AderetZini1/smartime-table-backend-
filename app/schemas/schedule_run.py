@@ -8,7 +8,8 @@ class ScheduleRunBase(BaseModel):
     score: Optional[float] = None  # ציון פונקציית המטרה
     is_selected: bool = False  # המערכת הנבחרת
     is_published: bool = False  # פורסם לצוות
-    published_at: Optional[datetime] = None  # מתי פורסמה המערכת הנבחרת
+    published_at: Optional[datetime] = None  # מתי פורסם
+    admin_note: Optional[str] = None  # הערת מנהל
 
 # ליצירת הרצה חדשה
 class ScheduleRunCreate(BaseModel):
