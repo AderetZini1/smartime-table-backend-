@@ -12,3 +12,4 @@ class ScheduleRun(Base):
     is_selected = Column(Boolean, nullable=False, default=False)
     is_published = Column(Boolean, nullable=False, default=False)
     published_at = Column(DateTime, nullable=True)
+    admin_note = Column(String(255), nullable=True)
