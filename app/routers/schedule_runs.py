@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models.schedule_run import ScheduleRun
