@@ -81,3 +81,22 @@ async def _get_or_404(db: AsyncSession, run_id: int) -> ScheduleRun:
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule run not found")
     return run
+
+
+class NoteUpdate(BaseModel):
+    admin_note: Optional[str] = None
+
+
+@router.patch("/{run_id}/note", response_model=ScheduleRunResponse)
+async def update_run_note(
+    run_id: int,
+    data: NoteUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: Teacher = Depends(get_current_admin),
+):
+    run = await _get_or_404(db, run_id)
+    note = (data.admin_note or "").strip()
+    run.admin_note = note[:255] if note else None
+    await db.commit()
+    await db.refresh(run)
+    return run
