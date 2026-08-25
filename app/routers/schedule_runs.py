@@ -66,6 +66,11 @@ async def delete_run(
     _: Teacher = Depends(get_current_admin),
 ):
     run = await _get_or_404(db, run_id)
+    if run.is_selected or run.is_published:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete the currently selected or published schedule.",
+        )
     await db.delete(run)
     await db.commit()
 
